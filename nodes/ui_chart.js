@@ -41,8 +41,10 @@ module.exports = function(RED) {
                     oldValue = [];
                 }
                 ChartIdList[node.id] = node.chartType;
+                var converted = {};
                 if (Array.isArray(value)) {
-                    oldValue = value;
+                    converted.update = false;
+                    converted.updatedValues = value;
                 } else {
                     value = parseFloat(value);
                     var point;
@@ -51,7 +53,6 @@ module.exports = function(RED) {
                     var storageKey = node.id;
                     var found;
                     if (!oldValue) { oldValue = [];}
-                    var converted = {};
                     if (node.chartType !== "line") {  // handle bar and pie type data
                         if (oldValue.length == 0) {
                             oldValue = [{

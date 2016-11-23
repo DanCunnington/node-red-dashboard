@@ -12,6 +12,7 @@ angular.module('ui').directive('uiChartJs', [ '$timeout', '$interpolate',
 
                     // When new values arrive, update the chart
                     scope.$watch('me.item.value', function (newValue) {
+                        console.log(newValue);
 
                         if (newValue !== undefined && newValue.length > 0) {
                             scope.config.nodata = false;
