@@ -123,6 +123,52 @@
     font-size: 0.8em;
     color: #999;
 }
+
+#dashboard-tabs-list {
+    margin-bottom: 15px;
+    display: inline-block;
+}
+#dashboard-tabs-list li a:hover {
+    cursor: pointer;
+}
+#dash-link-button {
+    display: inline-block;
+    margin-left: 15px;
+    position: absolute;
+    top: 50%;
+    margin-top: -23px;
+}
+#dashboard-tabs-link-container {
+    clear: both;
+    position: relative;
+}
+ul.red-ui-dashboard-theme-styles {
+    list-style: none;
+}
+
+input.nr-db-field-themeColor {
+    width: 50px !important;
+    padding: 0;
+    height: 20px;
+    border: none;
+    box-shadow: none;
+    position: absolute;
+    right: 50px;
+}
+select.nr-db-field-font {
+    margin-left: 2em;
+    width: 150px !important;
+}
+
+
+i.resetIcon {
+    margin: 0px 10px 0px 10px;
+    float: right;
+}
+i.resetIcon:hover {
+    cursor: pointer;
+}
+
 </style>
 <script type="text/javascript">
 (function($) {
@@ -185,7 +231,51 @@
 
             var form = $('<form class="dialog-form">').appendTo(mainContent);
 
-            var divTitle = $('<div>',{class:"form-row"}).appendTo(form);
+            var tabsAndLinkContainer = $('<div id="dashboard-tabs-link-container">').appendTo(form);
+
+            // Dashboard Tabs markup
+            var ulDashboardTabs = $('<ul id="dashboard-tabs-list" class="red-ui-tabs"></ul>').appendTo(tabsAndLinkContainer);
+            var liLayoutTab = $('<li class="red-ui-tab" style="width: 80px;"><a class="red-ui-tab-label" title="Layout"><span>Layout</span></a></li>').appendTo(ulDashboardTabs);
+            var liThemeTab = $('<li class="red-ui-tab" style="width: 80px;"><a class="red-ui-tab-label" title="Theme" style="width: 80px;"><span>Theme</span></a></li>').appendTo(ulDashboardTabs);
+            var liSiteTab = $('<li class="red-ui-tab" style="width: 80px;"><a class="red-ui-tab-label" title="Site" style="width: 80px;"><span>Site</span></a></li>').appendTo(ulDashboardTabs);
+            $('<a href="#" id="dash-link-button" class="editor-button"><i class="fa fa-external-link"></i></a>')
+                .click(function(evt) {
+                    window.open(document.location.protocol+"//"+document.location.host+RED.settings.httpNodeRoot+uip);
+                    evt.preventDefault();
+                })
+                .appendTo(tabsAndLinkContainer);
+
+            // Dashboard Tab containers
+            var layoutTab = $('<div id="dashboard-layout">').appendTo(form);
+            var themeTab = $('<div id="dashboard-theme" style="display: none;">').appendTo(form);
+            var siteTab = $('<div id="dashboard-site" style="display: none;">').appendTo(form);
+            ulDashboardTabs.children().first().addClass("active");
+            // Tab logic
+            var onTabClick = function() {
+                //Toggle tabs
+                ulDashboardTabs.children().removeClass("active");
+                ulDashboardTabs.children().css({"transition": "width 100ms"});
+                $(this).parent().addClass("active");
+                var selectedTab = $(this)[0].title;
+                if (selectedTab === 'Layout') {
+                    themeTab.hide();
+                    siteTab.hide();
+                    layoutTab.show();
+                } else if (selectedTab === 'Theme') {
+                    layoutTab.hide();
+                    siteTab.hide();
+                    themeTab.show();
+                    // ($("#nr-db-field-theme option:selected").val() === 'theme-custom') ? themeSettingsContainer.show() : themeSettingsContainer.hide();
+                } else {
+                    layoutTab.hide();
+                    themeTab.hide();
+                    siteTab.show();
+                }
+            }
+            ulDashboardTabs.find("li.red-ui-tab a").on("click",onTabClick);
+
+            // Site Tab
+            var divTitle = $('<div>',{class:"form-row"}).appendTo(siteTab);
             $('<label>').html('Title').appendTo(divTitle);
             $('<input type="text" id="nr-db-field-title">').val("Node-RED Dashboard").css("width","calc(100% - 48px)")
                 .change(function() {
@@ -196,32 +286,65 @@
                     }
                 })
                 .appendTo(divTitle);
-
-            $('<a href="#" class="editor-button" style="margin-left: 10px;"><i class="fa fa-external-link"></i></a>')
-                .click(function(evt) {
-                    window.open(document.location.protocol+"//"+document.location.host+RED.settings.httpNodeRoot+uip);
-                    evt.preventDefault();
-                })
-                .appendTo(divTitle);
-
-            var divTheme = $('<div>',{class:"form-row"}).appendTo(form);
-            $('<label>').html('Theme').appendTo(divTheme);
-            $('<select id="nr-db-field-theme">'+
+            // Theme Tab
+            var divThemeStyle = $('<div>',{class:"form-row"}).appendTo(themeTab);
+            $('<label>').html('Style').appendTo(divThemeStyle);        
+            var themeSelection = $('<select id="nr-db-field-theme">'+
                 '<option value="theme-light">Light (default)</option>'+
                 '<option value="theme-dark">Dark</option>'+
+                '<option value="theme-custom">Custom</option>'+
                 '</select>')
                 .change(function() {
                     if (!globalDashboardNode || globalDashboardNode.theme !== $(this).val()) {
                         ensureDashboardNode(true);
                         globalDashboardNode.theme = $(this).val();
+                        // (globalDashboardNode.theme === 'theme-light') ? $("#nr-db-field-themeColor").val(globalDashboardNode.lightThemeColor) : $("#nr-db-field-themeColor").val(globalDashboardNode.darkThemeColor);
+
+                        if (globalDashboardNode.theme === 'theme-light' || globalDashboardNode.theme === 'theme-dark') {
+                            // Allow base colour and font changes
+
+                        } else {
+                            // Custom - show all
+                        }
+
                         RED.nodes.dirty(true);
                     }
+                  // ($(this).val() === 'theme-custom') ? $("#custom-theme-settings").show() : $("#custom-theme-settings").hide();
+                    
                 })
-                .appendTo(divTheme);
+                .appendTo(divThemeStyle);
 
-            var divTabs = $('<div>',{class:"form-row",style:"position:relative"}).appendTo(form);
+            var baseSettings = $('<div>', {class: "form-row", style:"position: relative"}).appendTo(themeTab);
+            $('<label>').html('Base Settings').appendTo(baseSettings);
+            var baseSettingsUl = $('<ul class="red-ui-dashboard-theme-styles"></ul>').appendTo(baseSettings);
+            
+            var baseColourItem = $('<li class="red-ui-dashboard-theme-item"><span>Colour</span></li>').appendTo(baseSettingsUl);
+            var spanColorContainer = $('<span class="nr-db-color-pick-container"></span>').appendTo(baseColourItem);
+            
+            $('<input class="nr-db-field-themeColor" type="color"/>')
+            .change(function() {
+                ensureDashboardNode(true);
+                // var lightThemeMatch = globalDashboardNode.lightThemeColor === $(this).val();
+                // var darkThemeMatch = globalDashboardNode.darkThemeColor === $(this).val();
+                // if (!globalDashboardNode || !lightThemeMatch || !darkThemeMatch) {
+                //     //update the relevant colour storage
+                //     (globalDashboardNode.theme === 'theme-light') ? globalDashboardNode.lightThemeColor = $(this).val() : globalDashboardNode.darkThemeColor = $(this).val();
+                //     RED.nodes.dirty(true);
+                // }
+            })
+            .appendTo(spanColorContainer);
+
+            var baseFontItem = $('<li class="red-ui-dashboard-theme-item"><span>Font</span></li>').appendTo(baseSettingsUl);
+            var fontSelector = $('<select class="nr-db-field-font">'+
+                '<option value="arial">Arial (default)</option>'+
+                '<option value="helvetica">Helvetica</option>'+
+                '</select>').appendTo(baseFontItem);                
+            var resetToDefault = $('<i class="fa fa-refresh resetIcon"></i>')
+                .appendTo(baseSettingsUl.children());
+
+            //Layout Tab
+            var divTabs = $('<div>',{class:"form-row",style:"position:relative"}).appendTo(layoutTab);
             $('<label>').html('Tabs').appendTo(divTabs);
-
             var buttonGroup = $('<div>',{class:"nr-db-sb-list-button-group"}).appendTo(divTabs);
             $('<a href="#" class="editor-button editor-button-small nr-db-sb-list-header-button"><i class="fa fa-angle-double-up"></i></a>')
                 .click(function(evt) {
@@ -243,6 +366,7 @@
                     evt.preventDefault();
                 })
                 .appendTo(buttonGroup);
+
 
             var tabLists = {};
             var groupLists = {};
@@ -579,7 +703,7 @@
                 event.preventDefault();
             });
 
-            var divLinks = $('<div>',{class:"form-row",style:"position:relative"}).appendTo(form);
+            var divLinks = $('<div>',{class:"form-row",style:"position:relative"}).appendTo(layoutTab);
             $('<label>').html('Menu links').appendTo(divLinks);
 
             buttonGroup = $('<div>',{class:"nr-db-sb-list-button-group"}).appendTo(divLinks);
